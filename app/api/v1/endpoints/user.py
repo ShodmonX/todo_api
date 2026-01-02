@@ -7,8 +7,8 @@ from app.schemas import UserOut
 
 
 router = APIRouter(
-    prefix="/user",
-    tags=["User"]
+    prefix="/users",
+    tags=["Users"]
 )
 
 @router.get("/me", response_model=UserOut)

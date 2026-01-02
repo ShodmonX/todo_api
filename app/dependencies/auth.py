@@ -1,13 +1,11 @@
-from fastapi import Depends, Security, status, HTTPException
+from fastapi import Depends, status, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
 
 from app.database import get_db
 from app.crud import get_user_by_email
-from app.models import User
 from app.config import settings
 
 

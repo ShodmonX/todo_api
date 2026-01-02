@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from .config import settings
-from .api.v1 import router as v1_router
+from .api import router
 
 app = FastAPI(
     debug=settings.DEBUG,
@@ -12,7 +12,7 @@ app = FastAPI(
     openapi_url="/openapi.json" if settings.DEBUG else None,
 )
 
-app.include_router(v1_router)
+app.include_router(router)
 
 @app.get("/")
 async def root():

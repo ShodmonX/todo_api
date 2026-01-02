@@ -1,7 +1,8 @@
 from sqlalchemy import String, Boolean, DateTime, Integer, text, func, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from datetime import datetime, timezone
+from datetime import datetime
+from typing import Any
 
 from app.database import Base
 
@@ -20,6 +21,8 @@ class User(Base):
     last_login:         Mapped[datetime]    = mapped_column(DateTime, default=func.now(), server_default=func.now())
     profile_image:      Mapped[str]         = mapped_column(String(255), nullable=True)
     timezone:           Mapped[str]         = mapped_column(String(255), default="Asia/Tashkent", server_default=text("'Asia/Tashkent'"), nullable=True)
+
+    tasks: Mapped[list["Task"]] = relationship(back_populates="user") # type: ignore
     
     __table_args__ = (
         UniqueConstraint("username", name="uq_user_username"),
@@ -32,7 +35,7 @@ class User(Base):
     def __str__(self):
         return f"<User {self.username}>"
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "email": self.email,
