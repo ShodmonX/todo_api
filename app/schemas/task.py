@@ -39,6 +39,14 @@ class TaskOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class TaskUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    due_date: datetime | None = None
+    completed_at: datetime | None = None
+    estimated_time: int | None = None
+    actual_time: int | None = None
+
 class TaskOutResponse(BaseModel):
     status: str
     message: str

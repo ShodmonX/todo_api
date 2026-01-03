@@ -34,9 +34,6 @@ async def create_user(session: AsyncSession, user: UserIn):
         await session.rollback()
         raise HTTPException(status_code=400, detail="Error in creating user")
 
-    finally:
-        await session.close()
-
 async def get_user_by_email(session: AsyncSession, email: str):
     stmt = select(User).where(User.email == email)
     result = await session.execute(stmt)
