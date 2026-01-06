@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
 import shutil
 
-from app.schemas import UserIn, UserLogIn, UserOutResponse, UserOut, UserUpdate, UserChangePassword, UserNewPassword
+from app.schemas import UserIn, UserLogIn, UserOutResponse, UserOut, UserUpdate, UserChangePassword, UserNewPassword, UserForgotPassword
 from app.database import get_db
 from app.models import User
 from app.crud import create_user, get_user_by_email, set_login_date_now, set_verified_true, update_user_data, update_profile_image_path, delete_profile_image_path, update_user_password
@@ -41,7 +41,7 @@ async def register_user(
     }
 
 @router.post("/resend-verification")
-async def resend_verifiaction_email(
+async def resend_verification_email(
     user: Annotated[User, Depends(get_current_user)],
     request: Request
 ):
@@ -179,7 +179,7 @@ async def update_user(
         "user": updated_user
     }
 
-@router.post("me/profile-image", response_model=UserOutResponse)
+@router.post("/me/profile-image", response_model=UserOutResponse)
 async def update_profile_image(
     file: Annotated[UploadFile, File(...)],
     user: Annotated[User, Depends(get_current_user)],
@@ -206,7 +206,7 @@ async def update_profile_image(
         "user": user_updated
     }
 
-@router.get("me/profile-image")
+@router.get("/me/profile-image")
 async def get_profile_image(
     user: Annotated[User, Depends(get_current_user)]
 ):
@@ -219,7 +219,7 @@ async def get_profile_image(
     
     return FileResponse(image_path)
 
-@router.delete("me/profile-image", response_model=UserOutResponse)
+@router.delete("/me/profile-image", response_model=UserOutResponse)
 async def delete_profile_image(
     user: Annotated[User, Depends(get_current_user)], 
     session: Annotated[AsyncSession, Depends(get_db)]
@@ -262,9 +262,13 @@ async def change_password(
 
 @router.post("/forgot-password")
 async def forgot_password(
-    user: Annotated[User, Depends(get_current_user)],
-    request: Annotated[Request, Request]
+    user_forgot: Annotated[UserForgotPassword, Body()],
+    request: Annotated[Request, Request],
+    session: Annotated[AsyncSession, Depends(get_db)]
 ):
+    user = await get_user_by_email(session, user_forgot.email)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
     if not user.is_verified:
         raise HTTPException(status_code=400, detail="You must verify your email before password reset.")
     password_reset_token = create_password_reset_token(user.email)

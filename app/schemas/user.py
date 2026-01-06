@@ -60,6 +60,7 @@ class UserOut(BaseModel):
     email: EmailStr = Field(..., json_schema_extra={"example": "name@example.com"})
     username: str
     timezone: str
+    profile_image: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -79,3 +80,20 @@ class UserChangePassword(BaseModel):
 
 class UserNewPassword(BaseModel):
     new_password: str = Field(..., min_length=8, max_length=72)
+
+class UserForgotPassword(BaseModel):
+    email: EmailStr = Field(..., json_schema_extra={"example": "name@example.com"})
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        
+        value = value.strip().lower()
+
+        if not check_domain(value):
+            raise ValueError("Email domain is not valid")
+
+        return value
+    
