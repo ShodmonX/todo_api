@@ -60,7 +60,7 @@ class UserOut(BaseModel):
     email: EmailStr = Field(..., json_schema_extra={"example": "name@example.com"})
     username: str
     timezone: str
-    profile_image: str
+    profile_image: str | None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
