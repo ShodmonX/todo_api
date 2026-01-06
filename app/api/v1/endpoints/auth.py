@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends, Response, HTTPException, Cookie
+from fastapi import APIRouter, Depends, Response, HTTPException, Cookie, Request, Query, Body
 
-from typing import Annotated
+from typing import Annotated, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas import UserIn, UserLogIn
+from app.schemas import UserIn, UserLogIn, UserOutResponse, UserOut, UserUpdate
 from app.database import get_db
-from app.crud import create_user, get_user_by_email, set_login_date_now
+from app.models import User
+from app.crud import create_user, get_user_by_email, set_login_date_now, set_verified_true, update_user_data
 from app.services import save_refresh_token, get_user_email_by_refresh_token, delete_refresh_token
-from app.core import verify_password, create_access_token, create_refresh_token
-
+from app.core import verify_password, create_access_token, create_refresh_token, create_verify_token, get_email_by_token
+from app.tasks import send_verify_email_task
 from app.config import settings
+from app.dependencies import get_current_user
 
 
 router = APIRouter(
@@ -17,14 +19,41 @@ router = APIRouter(
     tags=["Auth"]
 )
 
-@router.post("/register")
+@router.post("/register", response_model=UserOutResponse)
 async def register_user(
-    user: Annotated[UserIn, UserIn],
-    session: Annotated[AsyncSession, Depends(get_db)]
-):
-    print(user.password)
+    user: Annotated[UserIn, Body()],
+    session: Annotated[AsyncSession, Depends(get_db)],
+    request: Request
+) -> dict[str, Any]:
+    token = create_verify_token(user.email)
     user_db = await create_user(session, user)
-    return user_db
+    verification_url = request.url_for("verify-email").include_query_params(token=token)
+    send_verify_email_task.delay(user_db.email, str(verification_url)) # type: ignore
+    return {
+        "status": "ok",
+        "message": "User created",
+        "user": user_db
+    }
+
+@router.post("/verify-email", name="verify-email", response_model=UserOutResponse)
+async def verify_email(
+    token: Annotated[str, Query()],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    email: str = get_email_by_token(token)
+    user = await get_user_by_email(session, email)
+    if user is None:
+        raise HTTPException(status_code=400, detail="Invalid token")
+    if user.is_verified:
+        raise HTTPException(status_code=409, detail="User is already verified")
+    user: User | None = await set_verified_true(session, email)
+    if user is None:
+        raise HTTPException(status_code=400, detail="Invalid token")
+    return {
+        "status": "ok",
+        "message": "Email verified",
+        "user": user
+    }
 
 @router.post("/login")
 async def login_user(
@@ -109,4 +138,21 @@ async def logout_user(
     return {
         "status": "ok",
         "detail": "Successfully logged out"
+    }
+
+@router.get("/me", response_model=UserOut)
+async def get_me(user: Annotated[User, Depends(get_current_user)]):
+    return user
+
+@router.put("/me", response_model=UserOutResponse)
+async def update_user(
+    user: Annotated[User, Depends(get_current_user)],
+    user_update: Annotated[UserUpdate, Body()],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    updated_user = await update_user_data(session, user.email, user_update)
+    return {
+        "status": "ok",
+        "message": "User updated",
+        "user": updated_user
     }

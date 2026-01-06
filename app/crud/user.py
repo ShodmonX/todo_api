@@ -6,7 +6,7 @@ from sqlalchemy.future import select
 from fastapi import HTTPException
 
 from app.models import User
-from app.schemas import UserIn
+from app.schemas import UserIn, UserUpdate
 from app.core import get_password_hash
 
 
@@ -55,3 +55,45 @@ async def set_login_date_now(session: AsyncSession, email: str):
     except Exception:
         await session.rollback()
         return None
+    
+async def set_verified_true(session: AsyncSession, email: str):
+    try:
+        stmt = (
+            update(User)
+            .where(User.email == email)
+            .values(is_verified = True)
+            .returning(User)
+        )
+
+        result = await session.execute(stmt)
+        await session.commit()
+        return result.scalars().first()
+    except Exception:
+        await session.rollback()
+        return None
+    
+async def update_user_data(session: AsyncSession, email: str, user_update: UserUpdate):
+    values_to_update = user_update.model_dump(exclude_unset=True)
+    if not values_to_update:
+         return await get_user_by_email(session, email)
+    stmt = update(User).where(User.email == email).values(**values_to_update).returning(User)
+    try:
+        result = await session.execute(stmt)
+        updated_user = result.scalars().first()
+        if not updated_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        await session.commit()
+        return updated_user
+    except IntegrityError as e:
+        await session.rollback()
+
+        if "uq_user_username" in str(e):
+            raise HTTPException(status_code=409, detail="Username already exists")
+        
+        raise HTTPException(status_code=409, detail="Integrity error in creating user")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

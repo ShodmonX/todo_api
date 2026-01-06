@@ -1,8 +1,9 @@
 from passlib.context import CryptContext
-from jose import jwt
+from jose import jwt, JWTError, ExpiredSignatureError
 from datetime import datetime, timedelta, timezone
 
 from typing import Any
+from fastapi import HTTPException
 
 from app.config import settings
 
@@ -48,3 +49,29 @@ def create_refresh_token(data: dict[str, Any], expires_delta: int | None = None)
     expires = datetime.now(tz=timezone.utc) + timedelta(days=expires_delta if expires_delta else settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expires, "type": "refresh"})
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+def create_verify_token(email: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(days=1)
+    payload: dict[str, Any] = {
+        "sub": email,
+        "exp": expire
+    }
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+def get_email_by_token(token: str) -> str:
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+            options={"verify_exp": True}  # default True
+        )
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=400, detail="Invalid token")
+        return email
+
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="Token expired")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Token invalid")

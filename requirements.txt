@@ -9,3 +9,6 @@ SQLAlchemy==2.0.45
 uvicorn==0.40.0
 redis==7.1.0
 python-jose==3.5.0
+celery==5.3.4
+flower==2.0.1
+requests==2.32.5

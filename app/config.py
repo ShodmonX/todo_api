@@ -10,7 +10,10 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str
+    CELERY_BROKER_URL: str
+    CELERY_RESULT_BACKEND: str
+    MAILTRAP_API_TOKEN: str
     
     model_config = SettingsConfigDict(env_file=".env")
 
-settings = Settings()
+settings = Settings() # type: ignore
