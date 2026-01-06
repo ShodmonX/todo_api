@@ -41,7 +41,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(data: dict[str, Any], expires_delta: int | None = None) -> str:
     to_encode = data.copy()
     expires = datetime.now(tz=timezone.utc) + timedelta(minutes=expires_delta if expires_delta else settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expires})
+    to_encode.update({"exp": expires, "type": "access"})
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 def create_refresh_token(data: dict[str, Any], expires_delta: int | None = None) -> str:
@@ -50,15 +50,16 @@ def create_refresh_token(data: dict[str, Any], expires_delta: int | None = None)
     to_encode.update({"exp": expires, "type": "refresh"})
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
-def create_verify_token(email: str) -> str:
+def create_email_verify_token(email: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=1)
     payload: dict[str, Any] = {
         "sub": email,
+        "type": "email_verify",
         "exp": expire
     }
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
-def get_email_by_token(token: str) -> str:
+def get_email_by_email_verify_token(token: str) -> str:
     try:
         payload = jwt.decode(
             token,
@@ -66,6 +67,39 @@ def get_email_by_token(token: str) -> str:
             algorithms=[settings.JWT_ALGORITHM],
             options={"verify_exp": True}  # default True
         )
+        type_ = payload.get("type")
+        if not type_ or type_ != "email_verify":
+            raise HTTPException(status_code=400, detail="Invalid token")
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=400, detail="Invalid token")
+        return email
+
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="Token expired")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Token invalid")
+    
+def create_password_reset_token(email: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    payload: dict[str, Any] = {
+        "sub": email,
+        "type": "reset_password",
+        "exp": expire
+    }
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, settings.JWT_ALGORITHM)
+
+def get_email_by_password_reset_token(token: str) -> str:
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+            options={"verify_exp": True}  # default True
+        )
+        type_ = payload.get("type")
+        if not type_ or type_ != "reset_password":
+            raise HTTPException(status_code=400, detail="Invalid token")
         email = payload.get("sub")
         if not email:
             raise HTTPException(status_code=400, detail="Invalid token")

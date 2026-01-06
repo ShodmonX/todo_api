@@ -6,13 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
 import shutil
 
-from app.schemas import UserIn, UserLogIn, UserOutResponse, UserOut, UserUpdate
+from app.schemas import UserIn, UserLogIn, UserOutResponse, UserOut, UserUpdate, UserChangePassword, UserNewPassword
 from app.database import get_db
 from app.models import User
-from app.crud import create_user, get_user_by_email, set_login_date_now, set_verified_true, update_user_data, update_profile_image_path, delete_profile_image_path
+from app.crud import create_user, get_user_by_email, set_login_date_now, set_verified_true, update_user_data, update_profile_image_path, delete_profile_image_path, update_user_password
 from app.services import save_refresh_token, get_user_email_by_refresh_token, delete_refresh_token
-from app.core import verify_password, create_access_token, create_refresh_token, create_verify_token, get_email_by_token
-from app.tasks import send_verify_email_task
+from app.core import verify_password, create_access_token, create_refresh_token, create_email_verify_token, get_email_by_email_verify_token, create_password_reset_token, get_email_by_password_reset_token
+from app.tasks import send_verify_email_task, send_reset_password_email_task
 from app.config import settings
 from app.dependencies import get_current_user
 
@@ -30,7 +30,7 @@ async def register_user(
     session: Annotated[AsyncSession, Depends(get_db)],
     request: Request
 ) -> dict[str, Any]:
-    token = create_verify_token(user.email)
+    token = create_email_verify_token(user.email)
     user_db = await create_user(session, user)
     verification_url = request.url_for("verify-email").include_query_params(token=token)
     send_verify_email_task.delay(user_db.email, str(verification_url)) # type: ignore
@@ -40,12 +40,29 @@ async def register_user(
         "user": user_db
     }
 
+@router.post("/resend-verification")
+async def resend_verifiaction_email(
+    user: Annotated[User, Depends(get_current_user)],
+    request: Request
+):
+    if user.is_verified:
+        raise HTTPException(status_code=409, detail="User is already verified")
+    
+    token = create_email_verify_token(user.email)
+    verification_url = request.url_for("verify-email").include_query_params(token=token)
+    send_verify_email_task.delay(user.email, str(verification_url)) # type: ignore
+    return {
+        "status": "ok",
+        "message": "Verification email resent."
+    }
+    
+
 @router.post("/verify-email", name="verify-email", response_model=UserOutResponse)
 async def verify_email(
     token: Annotated[str, Query()],
     session: Annotated[AsyncSession, Depends(get_db)]
 ) -> dict[str, Any]:
-    email: str = get_email_by_token(token)
+    email: str = get_email_by_email_verify_token(token)
     user = await get_user_by_email(session, email)
     if user is None:
         raise HTTPException(status_code=400, detail="Invalid token")
@@ -218,6 +235,66 @@ async def delete_profile_image(
     
     return {
         "status": "ok",
-        "message": "Profile image has been deleted",
+        "message": "Profile image deleted",
         "user": user_updated
+    }
+
+@router.post("/change-password", response_model=UserOutResponse)
+async def change_password(
+    user: Annotated[User, Depends(get_current_user)], 
+    session: Annotated[AsyncSession, Depends(get_db)],
+    change_password: Annotated[UserChangePassword, Body()]
+) -> dict[str, Any]:
+    
+    if not verify_password(change_password.old_password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Old password is incorrect")
+    
+    user_updated = await update_user_password(session, user.email, change_password.new_password)
+
+    if not user_updated:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "status": "ok",
+        "message": "User password updated",
+        "user": user_updated
+    }
+
+@router.post("/forgot-password")
+async def forgot_password(
+    user: Annotated[User, Depends(get_current_user)],
+    request: Annotated[Request, Request]
+):
+    if not user.is_verified:
+        raise HTTPException(status_code=400, detail="You must verify your email before password reset.")
+    password_reset_token = create_password_reset_token(user.email)
+    password_reset_url = request.url_for("reset-password").include_query_params(token=password_reset_token)
+    send_reset_password_email_task.delay(user.email, str(password_reset_url)) # type: ignore
+    return {
+        "status": "ok",
+        "message": "Password reset link sent to your email."
+    }
+
+@router.post("/reset-password", name="reset-password", response_model=UserOutResponse)
+async def reset_password(
+    token: Annotated[str, Query()],
+    new_password: Annotated[UserNewPassword, Body()],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    email: str = get_email_by_password_reset_token(token)
+
+    user = await get_user_by_email(session, email)
+
+    if user is None:
+        raise HTTPException(status_code=400, detail="Invalid token")
+    
+    updated_user = await update_user_password(session, user.email, new_password.new_password)
+
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "status": "ok",
+        "message": "User password updated",
+        "user": updated_user
     }

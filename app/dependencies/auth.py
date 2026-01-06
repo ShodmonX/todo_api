@@ -26,6 +26,9 @@ async def get_current_user(
 
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        type_ = payload.get("type")
+        if not type_ or type_ != "access":
+            raise HTTPException(status_code=400, detail="Invalid token")
         email: str | None = payload.get("sub")
         if email is None:
             raise HTTPException(status_code=401, detail="Invalid token")

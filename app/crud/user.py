@@ -132,3 +132,19 @@ async def delete_profile_image_path(session: AsyncSession, email: str):
         await session.rollback()
         return None
     
+async def update_user_password(session: AsyncSession, email:str, password: str):
+    try:
+        stmt = (
+            update(User)
+            .where(User.email == email)
+            .values(hashed_password=get_password_hash(password))
+            .returning(User)
+        )
+
+        result = await session.execute(stmt)
+        await session.commit()
+        return result.scalars().first()
+
+    except Exception:
+        await session.rollback()
+        return None

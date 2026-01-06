@@ -3,7 +3,7 @@ from celery import Task # pyright: ignore[reportMissingTypeStubs]
 from typing import Any
 
 from app.core import celery_app
-from app.utils import send_verification_email
+from app.utils import send_verification_email, send_reset_password_email
 
 
 class BaseTaskWithRetry(Task):
@@ -17,3 +17,8 @@ class BaseTaskWithRetry(Task):
 def send_verify_email_task(self: Any, email: str, verification_url: str):
     send_verification_email(email, verification_url)
     return f"Tasdiqlash emaili jo'natildi: {email}"
+
+@celery_app.task(bind=True) # pyright: ignore[reportUntypedFunctionDecorator, reportUnknownMemberType]
+def send_reset_password_email_task(self: Any, email: str, verification_url: str):
+    send_reset_password_email(email, verification_url)
+    return f"Parolni qayta tiklash emaili jo'natildi: {email}"
