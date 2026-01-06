@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Depends, Response, HTTPException, Cookie, Request, Query, Body
+from fastapi import APIRouter, Depends, Response, HTTPException, Cookie, Request, Query, Body, UploadFile, File
+from fastapi.responses import FileResponse
 
 from typing import Annotated, Any
 from sqlalchemy.ext.asyncio import AsyncSession
+from pathlib import Path
+import shutil
 
 from app.schemas import UserIn, UserLogIn, UserOutResponse, UserOut, UserUpdate
 from app.database import get_db
 from app.models import User
-from app.crud import create_user, get_user_by_email, set_login_date_now, set_verified_true, update_user_data
+from app.crud import create_user, get_user_by_email, set_login_date_now, set_verified_true, update_user_data, update_profile_image_path, delete_profile_image_path
 from app.services import save_refresh_token, get_user_email_by_refresh_token, delete_refresh_token
 from app.core import verify_password, create_access_token, create_refresh_token, create_verify_token, get_email_by_token
 from app.tasks import send_verify_email_task
@@ -18,6 +21,8 @@ router = APIRouter(
     prefix="/auth",
     tags=["Auth"]
 )
+
+MEDIA_ROOT = Path("media/profile_images")
 
 @router.post("/register", response_model=UserOutResponse)
 async def register_user(
@@ -155,4 +160,64 @@ async def update_user(
         "status": "ok",
         "message": "User updated",
         "user": updated_user
+    }
+
+@router.post("me/profile-image", response_model=UserOutResponse)
+async def update_profile_image(
+    file: Annotated[UploadFile, File(...)],
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    if file.content_type not in ["image/png", "image/jpeg", "image/jpg"]:
+        raise HTTPException(status_code=400, detail="Invalid image format")
+    
+    user_folder = MEDIA_ROOT / str(user.id)
+    user_folder.mkdir(parents=True, exist_ok=True)
+
+    profile_path = user_folder / "profile.png"
+    if profile_path.exists():
+        profile_path.unlink()
+    
+    with profile_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    user_updated = await update_profile_image_path(session, user.email, str(profile_path))
+
+    return {
+        "status": "ok",
+        "message": "Profile image updated",
+        "user": user_updated
+    }
+
+@router.get("me/profile-image")
+async def get_profile_image(
+    user: Annotated[User, Depends(get_current_user)]
+):
+    if not user.profile_image:
+        raise HTTPException(status_code=404, detail="Profile image not found")
+    
+    image_path = Path(user.profile_image)
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail="Profile image file not found")
+    
+    return FileResponse(image_path)
+
+@router.delete("me/profile-image", response_model=UserOutResponse)
+async def delete_profile_image(
+    user: Annotated[User, Depends(get_current_user)], 
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    if not user.profile_image:
+        raise HTTPException(status_code=404, detail="You do not have profile image")
+    
+    image_path = Path(user.profile_image)
+    if image_path.exists():
+        image_path.unlink()
+    
+    user_updated = await delete_profile_image_path(session, user.email)
+    
+    return {
+        "status": "ok",
+        "message": "Profile image has been deleted",
+        "user": user_updated
     }

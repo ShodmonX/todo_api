@@ -97,3 +97,38 @@ async def update_user_data(session: AsyncSession, email: str, user_update: UserU
     except Exception as e:
         await session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+async def update_profile_image_path(session: AsyncSession, email: str, image_path: str):
+    try:
+        stmt = (
+            update(User)
+            .where(User.email == email)
+            .values(profile_image=image_path)
+            .returning(User)
+        )
+
+        result = await session.execute(stmt)
+        await session.commit()
+        return result.scalars().first()
+
+    except Exception:
+        await session.rollback()
+        return None
+    
+async def delete_profile_image_path(session: AsyncSession, email: str):
+    try:
+        stmt = (
+            update(User)
+            .where(User.email == email)
+            .values(profile_image=None)
+            .returning(User)
+        )
+
+        result = await session.execute(stmt)
+        await session.commit()
+        return result.scalars().first()
+
+    except Exception:
+        await session.rollback()
+        return None
+    
