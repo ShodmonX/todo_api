@@ -39,5 +39,17 @@ async def get_current_user(
 
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
+    
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="You are banned, you cannot do this action.")
 
+    return user
+
+async def get_admin(
+    db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme), 
+):
+    user = await get_current_user(db, credentials)
+    if not user.is_superuser:
+        raise HTTPException(status_code=403, detail="You are not a superuser.")
     return user

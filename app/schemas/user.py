@@ -65,12 +65,30 @@ class UserOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class UserOutAdmin(UserOut):
+    id: int
+    is_active: bool
+    is_verified: bool
+    is_superuser: bool
+    last_login: datetime
+
 class UserOutResponse(BaseModel):
     status: str
     message: str
     user: UserOut
 
+class UserOutAdminResponse(BaseModel):
+    status: str
+    message: str
+    user: UserOutAdmin
+
 class UserUpdate(BaseModel):
+    username: str | None = None
+    timezone: str | None = None
+
+class UserUpdateAdmin(BaseModel):
+    is_verified: bool | None = None
+    is_superuser: bool | None = None
     username: str | None = None
     timezone: str | None = None
 

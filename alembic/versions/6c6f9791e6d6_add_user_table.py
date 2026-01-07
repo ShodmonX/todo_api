@@ -30,7 +30,7 @@ def upgrade() -> None:
     sa.Column('is_verified', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('is_superuser', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('last_login', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('last_login', sa.DateTime(), nullable=True),
     sa.Column('profile_image', sa.String(length=255), nullable=True),
     sa.Column('timezone', sa.String(length=255), server_default=sa.text("'Asia/Tashkent'"), nullable=True),
     sa.PrimaryKeyConstraint('id'),

@@ -89,7 +89,7 @@ async def login_user(
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if not user_db.is_active:
-        raise HTTPException(status_code=400, detail="User is not active")
+        raise HTTPException(status_code=400, detail="User is not active, contact Support Center")
 
     # if not user_db.is_verified:
     #     raise Response(status_code=400, content="User is not verified")
