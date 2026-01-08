@@ -141,13 +141,13 @@ async def search_tasks(session: AsyncSession, user: User, query: str, status: St
     return result.scalars().all()
         
 async def get_task_statistics(session: AsyncSession, user: User) -> dict[str, int | dict[str, int]]:
-    total_tasks = await session.scalar(select(func.count()).select_from(Task)) or 0
-    pending_tasks = await session.scalar(select(func.count()).where(Task.status == "pending")) or 0
-    in_progress_tasks = await session.scalar(select(func.count()).where(Task.status == "in_progress")) or 0
-    completed_tasks = await session.scalar(select(func.count()).where(Task.status == "completed")) or 0
-    low_tasks = await session.scalar(select(func.count()).where(Task.priority == "low")) or 0
-    medium_tasks = await session.scalar(select(func.count()).where(Task.priority == "medium")) or 0
-    high_tasks = await session.scalar(select(func.count()).where(Task.priority == "high")) or 0
+    total_tasks = await session.scalar(select(func.count()).where(Task.user_id == user.id)) or 0
+    pending_tasks = await session.scalar(select(func.count()).where(and_(Task.status == "pending", Task.user_id == user.id))) or 0
+    in_progress_tasks = await session.scalar(select(func.count()).where(and_(Task.status == "in_progress", Task.user_id == user.id))) or 0
+    completed_tasks = await session.scalar(select(func.count()).where(and_(Task.status == "completed", Task.user_id == user.id))) or 0
+    low_tasks = await session.scalar(select(func.count()).where(and_(Task.priority == "low", Task.user_id == user.id))) or 0
+    medium_tasks = await session.scalar(select(func.count()).where(and_(Task.priority == "medium", Task.user_id == user.id))) or 0
+    high_tasks = await session.scalar(select(func.count()).where(and_(Task.priority == "high", Task.user_id == user.id))) or 0
 
     return {
         "total_tasks": total_tasks,
