@@ -1,9 +1,9 @@
 from .user import UserIn, UserLogIn, UserOut, UserOutResponse, UserUpdate, UserChangePassword, UserNewPassword, UserForgotPassword, \
                   UserOutAdmin, UserOutAdminResponse, UserUpdateAdmin
-from .task import TaskIn, TaskOut, TaskOutResponse, TaskUpdate, StatusEnum, PriorityEnum
+from .task import TaskIn, TaskOut, TaskOutResponse, TaskUpdate, StatusEnum, PriorityEnum, TaskOutBulkResponse, TaskBulkUpdateStatus
 
 __all__ = [
     "UserIn", "UserLogIn", "UserOut", "UserOutResponse", "UserUpdate", "UserChangePassword", "UserNewPassword", "UserForgotPassword",
     "UserOutAdmin", "UserOutAdminResponse", "UserUpdateAdmin",
-    "TaskIn", "TaskOut", "TaskOutResponse", "TaskUpdate", "StatusEnum", "PriorityEnum"
+    "TaskIn", "TaskOut", "TaskOutResponse", "TaskUpdate", "StatusEnum", "PriorityEnum", "TaskOutBulkResponse", "TaskBulkUpdateStatus"
 ]

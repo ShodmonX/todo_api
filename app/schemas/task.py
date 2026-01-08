@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, date
 
 
 class StatusEnum(str, Enum):
@@ -14,11 +14,14 @@ class PriorityEnum(str, Enum):
     medium = "medium"
     high = "high"    
 
+class TaskBulkUpdateStatus(BaseModel):
+    ids: list[int]
+    status: StatusEnum
 class TaskIn(BaseModel):
     title: str
     description: str | None = None
     priority: PriorityEnum
-    due_date: datetime
+    due_date: date
     estimated_time: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -51,3 +54,8 @@ class TaskOutResponse(BaseModel):
     status: str
     message: str
     task: TaskOut
+
+class TaskOutBulkResponse(BaseModel):
+    status: str
+    message: str
+    tasks: list[TaskOut]

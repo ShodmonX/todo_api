@@ -1,11 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import update, delete
+from sqlalchemy import update, delete, and_, or_, func
 
 from fastapi import HTTPException
 
 from app.models import Task, User
-from app.schemas import TaskIn, TaskUpdate, StatusEnum, PriorityEnum
+from app.schemas import TaskIn, TaskUpdate, StatusEnum, PriorityEnum, TaskBulkUpdateStatus
 
 
 async def create_task(session: AsyncSession, task: TaskIn, user: User):
@@ -16,6 +16,16 @@ async def create_task(session: AsyncSession, task: TaskIn, user: User):
         await session.commit()
         await session.refresh(task_db)
         return task_db
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    
+async def create_bulk_task(session: AsyncSession, tasks: list[TaskIn], user: User):
+    task_dbs = [Task(**task.model_dump(), user = user) for task in tasks]
+    try:
+        session.add_all(task_dbs)
+        await session.commit()
+        return task_dbs
     except Exception as e:
         await session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -63,6 +73,43 @@ async def delete_task(session: AsyncSession, task_id: int):
     except Exception as e:
         await session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+async def delete_bulk_task(session: AsyncSession, task_ids: list[int], user: User):
+    stmt = select(Task).where(and_(Task.id.in_(task_ids), Task.user_id == user.id))
+    try:
+        result = await session.execute(stmt)
+        tasks = result.scalars().all()
+        
+        if not tasks:
+            raise HTTPException(status_code=404, detail="Tasks not found")
+
+        for task in tasks:
+            await session.delete(task)
+            
+        await session.commit()
+        return {
+            "deleted_task_count": len(tasks)
+        }
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def update_status_bulk(session: AsyncSession, update_status: TaskBulkUpdateStatus, user: User):
+    stmt = update(Task).where(and_(Task.id.in_(update_status.ids), Task.user_id == user.id)).values(status=update_status.status).returning(Task)
+
+    try:
+        result = await session.execute(stmt)
+
+        tasks = result.scalars().all()
+
+        if not tasks:
+            raise HTTPException(status_code=404, detail="Task not found.")
+        
+        await session.commit()
+        return tasks
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     
 async def update_status(session: AsyncSession, task_id: int, status: str):
     stmt = update(Task).where(Task.id == task_id).values(status = status).returning(Task)
@@ -84,3 +131,34 @@ async def update_priority(session: AsyncSession, task_id: int, priority: str):
         await session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+async def search_tasks(session: AsyncSession, user: User, query: str, status: StatusEnum | None = None, priority: PriorityEnum | None = None):
+    stmt = select(Task).where(and_(or_(Task.title.ilike(f"%{query}%"), Task.description.ilike(f"%{query}%")), Task.user_id == user.id))
+    if status is not None:
+        stmt = stmt.where(Task.status == status.value)
+    if priority is not None:
+        stmt = stmt.where(Task.priority == priority.value)
+    result = await session.execute(stmt)
+    return result.scalars().all()
+        
+async def get_task_statistics(session: AsyncSession, user: User) -> dict[str, int | dict[str, int]]:
+    total_tasks = await session.scalar(select(func.count()).select_from(Task)) or 0
+    pending_tasks = await session.scalar(select(func.count()).where(Task.status == "pending")) or 0
+    in_progress_tasks = await session.scalar(select(func.count()).where(Task.status == "in_progress")) or 0
+    completed_tasks = await session.scalar(select(func.count()).where(Task.status == "completed")) or 0
+    low_tasks = await session.scalar(select(func.count()).where(Task.priority == "low")) or 0
+    medium_tasks = await session.scalar(select(func.count()).where(Task.priority == "medium")) or 0
+    high_tasks = await session.scalar(select(func.count()).where(Task.priority == "high")) or 0
+
+    return {
+        "total_tasks": total_tasks,
+        "status": {
+            "pending": pending_tasks,
+            "in_progress": in_progress_tasks,
+            "completed": completed_tasks
+        },
+        "priority": {
+            "low": low_tasks,
+            "medium": medium_tasks,
+            "high": high_tasks
+        }
+    }
