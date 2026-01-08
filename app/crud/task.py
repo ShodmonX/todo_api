@@ -3,6 +3,9 @@ from sqlalchemy.future import select
 from sqlalchemy import update, delete, and_, or_, func
 
 from fastapi import HTTPException
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+import calendar
 
 from app.models import Task, User
 from app.schemas import TaskIn, TaskUpdate, StatusEnum, PriorityEnum, TaskBulkUpdateStatus
@@ -162,3 +165,64 @@ async def get_task_statistics(session: AsyncSession, user: User) -> dict[str, in
             "high": high_tasks
         }
     }
+
+async def get_todays_tasks(session: AsyncSession, user: User):
+    now = datetime.now(ZoneInfo(user.timezone))
+    today = now.date()
+
+    stmt = select(Task).where(and_(Task.due_date == today, Task.user_id == user.id))
+    result = await session.execute(stmt)
+
+    return result.scalars().all()
+
+async def get_tomorrows_tasks(session: AsyncSession, user: User):
+    tomorrow = datetime.now(ZoneInfo(user.timezone)) + timedelta(days=1)
+    today = tomorrow.date()
+
+    stmt = select(Task).where(and_(Task.due_date == today, Task.user_id == user.id))
+    result = await session.execute(stmt)
+
+    return result.scalars().all()
+
+async def get_this_weeks_tasks(session: AsyncSession, user: User):
+    now = datetime.now(ZoneInfo(user.timezone))
+    start_of_week = now - timedelta(days=now.weekday())
+    end_of_week = now + timedelta(days=6)
+
+
+    stmt = select(Task).where(and_(Task.due_date >= start_of_week.date(), Task.due_date <= end_of_week.date(), Task.user_id == user.id))
+    result = await session.execute(stmt)
+
+    return result.scalars().all()
+
+async def get_this_months_tasks(session: AsyncSession, user: User):
+    now = datetime.now(ZoneInfo(user.timezone))
+    start_of_month= now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).date()
+    _, num_days = calendar.monthrange(now.year, now.month)
+    end_of_month = now.replace(day=num_days, hour=23, minute=59, second=59, microsecond=99999).date()
+
+
+    stmt = select(Task).where(and_(Task.due_date >= start_of_month, Task.due_date <= end_of_month, Task.user_id == user.id))
+    result = await session.execute(stmt)
+
+    return result.scalars().all()
+
+async def get_overdue_tasks(session: AsyncSession, user: User):
+    now = datetime.now(ZoneInfo(user.timezone)).date()
+
+    stmt = select(Task).where(and_(Task.due_date < now, Task.user_id == user.id))
+    result = await session.execute(stmt)
+
+    return result.scalars().all()
+
+async def get_tasks_by_status(session: AsyncSession, user: User, status: str):
+    stmt = select(Task).where(and_(Task.status == status, Task.user_id == user.id))
+    result = await session.execute(stmt)
+
+    return result.scalars().all()
+
+async def get_tasks_by_priority(session: AsyncSession, user: User, priority: str):
+    stmt = select(Task).where(and_(Task.priority == priority, Task.user_id == user.id))
+    result = await session.execute(stmt)
+
+    return result.scalars().all()

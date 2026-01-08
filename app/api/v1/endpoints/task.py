@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_user
 from app.schemas import TaskIn, TaskOutResponse, TaskOut, TaskUpdate, StatusEnum, PriorityEnum, TaskOutBulkResponse, TaskBulkUpdateStatus
 from app.crud import create_task, get_all_tasks_of_user, update_task, delete_task, update_priority, update_status, create_bulk_task, delete_bulk_task, \
-                     update_status_bulk, search_tasks, get_task_statistics
+                     update_status_bulk, search_tasks, get_task_statistics, get_todays_tasks, get_tomorrows_tasks, get_this_weeks_tasks, get_this_months_tasks, \
+                     get_overdue_tasks, get_tasks_by_status, get_tasks_by_priority
 from app.database import get_db
 from app.models import User, Task
 from app.api.v1.deps import check_task_access
@@ -51,12 +52,124 @@ async def search_all_tasks(
     tasks = await search_tasks(session, user, query, status, priority)
     return tasks
 
-@router.get("/statistics", response_model=list[TaskOut])
+@router.get("/statistics")
 async def get_statistics(
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_db)],
-):
+) -> dict[str, int | dict[str, int]]:
     return await get_task_statistics(session, user)
+
+@router.get("/overdue", response_model=TaskOutBulkResponse)
+async def get_overdue_all_tasks(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_overdue_tasks(session, user)
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any overdue tasks.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} overdue tasks found.",
+        "tasks": tasks
+    }
+
+@router.get("/pending", response_model=TaskOutBulkResponse)
+async def get_pending_all_tasks(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_tasks_by_status(session, user, "pending")
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any tasks with 'pending' status.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} tasks found with 'pending' status.",
+        "tasks": tasks
+    }
+
+@router.get("/in-progress", response_model=TaskOutBulkResponse)
+async def get_in_progress_all_tasks(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_tasks_by_status(session, user, "in_progress")
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any tasks with 'in_progress' status.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} tasks found with 'in_progress' status.",
+        "tasks": tasks
+    }
+
+@router.get("/completed", response_model=TaskOutBulkResponse)
+async def get_completed_all_tasks(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_tasks_by_status(session, user, "completed")
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any tasks with 'completed' status.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} tasks found with 'completed' status.",
+        "tasks": tasks
+    }
+
+@router.get("/priority/low", response_model=TaskOutBulkResponse)
+async def get_low_all_tasks(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_tasks_by_priority(session, user, "low")
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any tasks with 'low' priority.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} tasks found with 'low' priority.",
+        "tasks": tasks
+    }
+
+@router.get("/priority/medium", response_model=TaskOutBulkResponse)
+async def get_medium_all_tasks(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_tasks_by_priority(session, user, "medium")
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any tasks with 'medium' priority.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} tasks found with 'medium' priority.",
+        "tasks": tasks
+    }
+
+@router.get("/priority/high", response_model=TaskOutBulkResponse)
+async def get_high_all_tasks(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_tasks_by_priority(session, user, "high")
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any tasks with 'high' priority.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} tasks found with 'high' priority.",
+        "tasks": tasks
+    }
 
 @router.get("/{task_id}", response_model=TaskOut)
 async def read_task(
@@ -143,3 +256,68 @@ async def update_status_bulk_by_ids(
         "message": f"Total {len(tasks)} tasks updated",
         "tasks": tasks
     }
+
+@router.get("/due/today", response_model=TaskOutBulkResponse)
+async def get_todays_all_task(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_todays_tasks(session, user)
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any tasks for today.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} today's tasks found.",
+        "tasks": tasks
+    }
+
+@router.get("/due/tomorrow", response_model=TaskOutBulkResponse)
+async def get_tomorrows_all_task(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_tomorrows_tasks(session, user)
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any tasks for tomorrow.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} tomorrow's tasks found.",
+        "tasks": tasks
+    }
+
+@router.get("/due/this-week", response_model=TaskOutBulkResponse)
+async def get_weeks_all_task(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_this_weeks_tasks(session, user)
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any tasks for this week.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} this week's tasks found.",
+        "tasks": tasks
+    }
+
+@router.get("/due/this-month", response_model=TaskOutBulkResponse)
+async def get_months_all_task(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> dict[str, Any]:
+    tasks = await get_this_months_tasks(session, user)
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="You do not have any tasks for month.")
+    
+    return {
+        "status": "ok",
+        "message": f"Total {len(tasks)} this month's tasks found.",
+        "tasks": tasks
+    }
+
