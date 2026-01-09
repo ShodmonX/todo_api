@@ -23,6 +23,7 @@ class TaskIn(BaseModel):
     priority: PriorityEnum
     due_date: date
     estimated_time: int | None = None
+    category_id: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -35,6 +36,7 @@ class TaskOut(BaseModel):
     due_date: datetime
     completed_at: datetime | None = None
     user_id: int
+    category_id: int | None
     created_at: datetime
     updated_at: datetime
     estimated_time: int | None = None
