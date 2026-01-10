@@ -24,6 +24,7 @@ class User(Base):
 
     tasks: Mapped[list["Task"]] = relationship(back_populates="user") # type: ignore
     categories: Mapped[list["Category"]] = relationship(back_populates="user", cascade="all, delete-orphan") # type: ignore
+    attachments: Mapped[list["Attachment"]] = relationship(back_populates="user", cascade="all, delete-orphan") # type: ignore
     
     __table_args__ = (
         UniqueConstraint("username", name="uq_user_username"),
