@@ -321,3 +321,8 @@ async def get_months_all_task(
         "tasks": tasks
     }
 
+@router.get("{task_id}/attachments")
+async def get_all_attachments_of_task(
+    task: Annotated[Task, Depends(check_task_access)]
+):
+    return 
