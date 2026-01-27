@@ -8,6 +8,7 @@ from .attachment import router as attachment_router
 from .subtask import router as subtask_router
 from .comment import router as comment_router
 from .reminder import router as reminder_router
+from .admin import router as admin_router
 
 
 router = APIRouter(prefix="/v1")
@@ -20,3 +21,4 @@ router.include_router(attachment_router)
 router.include_router(subtask_router)
 router.include_router(comment_router)
 router.include_router(reminder_router)
+router.include_router(admin_router)
