@@ -4,6 +4,7 @@ from .task import TaskIn, TaskOut, TaskOutResponse, TaskUpdate, StatusEnum, Prio
 from .category import CategoryOut, CategoryIn, CategoryUpdate
 from .attachment import MimeTypeEnum, AttachmentOut
 from .subtask import SubtaskCreate, SubtaskUpdate, SubtaskOut
+from .comment import CommentCreate, CommentUpdate, CommentOut
 
 
 __all__ = [
@@ -13,4 +14,5 @@ __all__ = [
     "CategoryOut", "CategoryIn", "CategoryUpdate",
     "MimeTypeEnum", "AttachmentOut",
     "SubtaskCreate", "SubtaskUpdate", "SubtaskOut",
+    "CommentCreate", "CommentUpdate", "CommentOut",
 ]
