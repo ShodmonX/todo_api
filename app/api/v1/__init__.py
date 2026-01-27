@@ -1,4 +1,4 @@
-from .endpoints import router
+from .api import router
 
 __all__ = [
     'router',

@@ -2,7 +2,7 @@ from .user import UserIn, UserLogIn, UserOut, UserOutResponse, UserUpdate, UserC
                   UserOutAdmin, UserOutAdminResponse, UserUpdateAdmin
 from .task import TaskIn, TaskOut, TaskOutResponse, TaskUpdate, StatusEnum, PriorityEnum, TaskOutBulkResponse, TaskBulkUpdateStatus
 from .category import CategoryOut, CategoryIn, CategoryUpdate
-from .attachment import MimeTypeEnum
+from .attachment import MimeTypeEnum, AttachmentOut
 
 
 __all__ = [
@@ -10,5 +10,5 @@ __all__ = [
     "UserOutAdmin", "UserOutAdminResponse", "UserUpdateAdmin",
     "TaskIn", "TaskOut", "TaskOutResponse", "TaskUpdate", "StatusEnum", "PriorityEnum", "TaskOutBulkResponse", "TaskBulkUpdateStatus",
     "CategoryOut", "CategoryIn", "CategoryUpdate",
-    "MimeTypeEnum",
+    "MimeTypeEnum", "AttachmentOut",
 ]

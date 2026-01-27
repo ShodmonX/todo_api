@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str
     CELERY_RESULT_BACKEND: str
     MAILTRAP_API_TOKEN: str
+    MEDIA_ROOT: str = "media/attachments"
     
     model_config = SettingsConfigDict(env_file=".env")
 

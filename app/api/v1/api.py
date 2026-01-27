@@ -7,9 +7,7 @@ from .category import router as category_router
 from .attachment import router as attachment_router
 
 
-router = APIRouter(
-    prefix="/v1",
-)
+router = APIRouter(prefix="/v1")
 
 router.include_router(auth_router)
 router.include_router(task_router)
