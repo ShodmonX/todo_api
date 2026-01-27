@@ -5,6 +5,7 @@ from .category import CategoryOut, CategoryIn, CategoryUpdate
 from .attachment import MimeTypeEnum, AttachmentOut
 from .subtask import SubtaskCreate, SubtaskUpdate, SubtaskOut
 from .comment import CommentCreate, CommentUpdate, CommentOut
+from .reminder import ReminderOut, ReminderCreate, ReminderUpdate, TaskReminderCreate
 
 
 __all__ = [
@@ -15,4 +16,5 @@ __all__ = [
     "MimeTypeEnum", "AttachmentOut",
     "SubtaskCreate", "SubtaskUpdate", "SubtaskOut",
     "CommentCreate", "CommentUpdate", "CommentOut",
+    "ReminderOut", "ReminderCreate", "ReminderUpdate", "TaskReminderCreate",
 ]

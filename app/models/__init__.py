@@ -4,6 +4,7 @@ from .category import Category
 from .attachment import Attachment
 from .subtask import Subtask
 from .comment import Comment
+from .reminder import Reminder
 
 __all__ = [
     "User",
@@ -11,5 +12,6 @@ __all__ = [
     "Category",
     "Attachment",
     "Subtask",
-    "Comment"
+    "Comment",
+    "Reminder"
 ]
