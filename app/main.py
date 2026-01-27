@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from .config import settings
 from .api import router
+from .ws import ws_router
 
 app = FastAPI(
     debug=settings.DEBUG,
@@ -13,6 +14,9 @@ app = FastAPI(
 )
 
 app.include_router(router)
+
+app.include_router(ws_router)
+
 
 @app.get("/")
 async def root():
