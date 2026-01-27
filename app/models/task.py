@@ -30,6 +30,7 @@ class Task(Base):
     attachments:        Mapped[list["Attachment"]] = relationship(back_populates="task", cascade="all, delete-orphan") # type: ignore 
     subtasks:           Mapped[list["Subtask"]] = relationship(back_populates="task", cascade="all, delete-orphan") # type: ignore
     comments:           Mapped[list["Comment"]] = relationship(back_populates="task", cascade="all, delete-orphan") # type: ignore
+    reminders:          Mapped[list["Reminder"]] = relationship(back_populates="task", cascade="all, delete-orphan") # type: ignore
 
     def __repr__(self):
         return f"<User {self.title} (id={self.id})>"

@@ -6,13 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
 
 from app.dependencies import get_current_user
-from app.schemas import TaskIn, TaskOutResponse, TaskOut, TaskUpdate, StatusEnum, PriorityEnum, TaskOutBulkResponse, TaskBulkUpdateStatus, AttachmentOut, MimeTypeEnum, SubtaskOut, SubtaskCreate, CommentOut, CommentCreate
+from app.schemas import TaskIn, TaskOutResponse, TaskOut, TaskUpdate, StatusEnum, PriorityEnum, TaskOutBulkResponse, TaskBulkUpdateStatus, AttachmentOut, MimeTypeEnum, SubtaskOut, SubtaskCreate, CommentOut, CommentCreate, ReminderOut, TaskReminderCreate
 from app.crud import create_task, get_all_tasks_of_user, update_task, delete_task, update_priority, update_status, create_bulk_task, delete_bulk_task, \
                      update_status_bulk, search_tasks, get_task_statistics, get_todays_tasks, get_tomorrows_tasks, get_this_weeks_tasks, get_this_months_tasks, \
                      get_overdue_tasks, get_tasks_by_status, get_tasks_by_priority, \
                      get_all_attachment_of_task, create_attachment, get_attachment_by_id, delete_attachment, \
                      list_subtasks_by_task, create_subtask, \
-                     list_comments_by_task, create_comment
+                     list_comments_by_task, create_comment, \
+                     create_reminder
 from app.database import get_db
 from app.models import User, Task
 from app.api.v1.deps import check_task_access
@@ -468,3 +469,21 @@ async def create_comment_for_task(
 ):
     comment = await create_comment(session, task.id, user.id, comment_data)
     return comment
+
+
+@router.post("/{task_id}/reminders", response_model=ReminderOut, status_code=201)
+async def create_reminder_for_task(
+    task: Annotated[Task, Depends(check_task_access)],
+    reminder_data: TaskReminderCreate,
+    session: Annotated[AsyncSession, Depends(get_db)]
+) -> ReminderOut:
+    """Create a reminder for a specific task."""
+    from app.schemas import ReminderCreate
+    
+    # Create reminder with task_id
+    reminder_create = ReminderCreate(
+        task_id=task.id,
+        reminder_time=reminder_data.reminder_time
+    )
+    reminder = await create_reminder(session, reminder_create)
+    return reminder
