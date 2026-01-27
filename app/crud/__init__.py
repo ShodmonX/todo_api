@@ -5,6 +5,7 @@ from .task import create_task, get_all_tasks_of_user, get_task_by_task_id, updat
 from .category import get_all_categories, create_category, get_category, update_category, delete_category, get_all_tasks_by_category, get_category_statistics
 from .attachment import get_all_attachment_of_task, get_attachment_by_id, create_attachment, delete_attachment
 from .subtask import list_subtasks_by_task, create_subtask, get_subtask, update_subtask, delete_subtask
+from .comment import list_comments_by_task, create_comment, get_comment, update_comment, delete_comment
 
 __all__ = [
     "create_user", "get_user_by_email", "set_login_date_now", "set_verified_true", "update_user_data", "update_profile_image_path", "delete_profile_image_path", "update_user_password",
@@ -14,4 +15,5 @@ __all__ = [
     "get_all_categories", "create_category", "get_category", "update_category", "delete_category", "get_all_tasks_by_category", "get_category_statistics",
     "get_all_attachment_of_task", "get_attachment_by_id", "create_attachment", "delete_attachment",
     "list_subtasks_by_task", "create_subtask", "get_subtask", "update_subtask", "delete_subtask",
+    "list_comments_by_task", "create_comment", "get_comment", "update_comment", "delete_comment",
 ]
