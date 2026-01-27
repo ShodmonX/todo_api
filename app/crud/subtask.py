@@ -65,7 +65,7 @@ async def update_subtask(
         
         if new_is_completed and not old_is_completed:
             # Transition from False to True
-            update_dict['completed_at'] = datetime.now(timezone.utc)
+            update_dict['completed_at'] = datetime.utcnow()
         elif not new_is_completed and old_is_completed:
             # Transition from True to False
             update_dict['completed_at'] = None
