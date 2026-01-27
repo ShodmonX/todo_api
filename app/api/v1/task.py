@@ -6,11 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
 
 from app.dependencies import get_current_user
-from app.schemas import TaskIn, TaskOutResponse, TaskOut, TaskUpdate, StatusEnum, PriorityEnum, TaskOutBulkResponse, TaskBulkUpdateStatus, AttachmentOut, MimeTypeEnum
+from app.schemas import TaskIn, TaskOutResponse, TaskOut, TaskUpdate, StatusEnum, PriorityEnum, TaskOutBulkResponse, TaskBulkUpdateStatus, AttachmentOut, MimeTypeEnum, SubtaskOut, SubtaskCreate
 from app.crud import create_task, get_all_tasks_of_user, update_task, delete_task, update_priority, update_status, create_bulk_task, delete_bulk_task, \
                      update_status_bulk, search_tasks, get_task_statistics, get_todays_tasks, get_tomorrows_tasks, get_this_weeks_tasks, get_this_months_tasks, \
                      get_overdue_tasks, get_tasks_by_status, get_tasks_by_priority, \
-                     get_all_attachment_of_task, create_attachment, get_attachment_by_id, delete_attachment
+                     get_all_attachment_of_task, create_attachment, get_attachment_by_id, delete_attachment, \
+                     list_subtasks_by_task, create_subtask
 from app.database import get_db
 from app.models import User, Task
 from app.api.v1.deps import check_task_access
@@ -429,3 +430,21 @@ async def delete_attachment_from_task(
         "status": "ok",
         "message": "Attachment deleted",
     }
+
+
+@router.get("/{task_id}/subtasks", response_model=list[SubtaskOut])
+async def get_all_subtasks_of_task(
+    task: Annotated[Task, Depends(check_task_access)],
+    session: Annotated[AsyncSession, Depends(get_db)]
+):
+    return await list_subtasks_by_task(session, task.id)
+
+
+@router.post("/{task_id}/subtasks", response_model=SubtaskOut, status_code=201)
+async def create_subtask_for_task(
+    task: Annotated[Task, Depends(check_task_access)],
+    subtask_data: SubtaskCreate,
+    session: Annotated[AsyncSession, Depends(get_db)]
+):
+    subtask = await create_subtask(session, task.id, subtask_data)
+    return subtask
