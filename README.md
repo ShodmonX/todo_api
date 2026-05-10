@@ -205,7 +205,7 @@ celery -A app.core.celery_app worker --loglevel=info
 ### Docker Deployment
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 This will start:
